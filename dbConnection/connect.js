@@ -5,7 +5,8 @@ const { Sequelize } = require("sequelize");
 
 const credential = require("../config/config.json");
 var sequelize = null;
-const dbCredential = credential["production"];
+const dbCredential = credential["development"];
+console.log(dbCredential);
 
 const dbConnection = async () => {
   try {
@@ -46,10 +47,11 @@ const dbConnection = async () => {
     console.log("Connection has been established successfully.");
     return sequelize;
   } catch (error) {
-    return res.status(500).json({
-      error: error.message,
-      message: "Unable to connect to the database",
-    });
+    console.log({ error });
+    // return res.status(500).json({
+    //   error: error.message,
+    //   message: "Unable to connect to the database",
+    // });
   }
 };
 
