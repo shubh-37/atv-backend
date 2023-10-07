@@ -1,10 +1,12 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
+require("dotenv").config();
 
 var sequelize = null;
 const dbConnection = require("./dbConnection/connect");
-const productController = require('./controllers/products');
+const productController = require("./controllers/products");
+const authController = require("./controllers/users");
 
 app.get("/", (req, res) => {
   res.send("Hello world");
@@ -20,7 +22,6 @@ app.use((req, res, next) => {
 });
 app.use(cors());
 
-
 async function start() {
   try {
     if (!sequelize) {
@@ -34,11 +35,12 @@ async function start() {
       }
     }
     productController(app, sequelize);
+    authController(app, sequelize);
     app.listen(3001, () => {
       console.log("Server is listening on port:3001");
     });
   } catch (error) {
-    console.log({error});
+    console.log({ error });
   }
 }
 
