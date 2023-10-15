@@ -13,27 +13,81 @@ function productController(app, Models) {
   app.post("/", upload.single("image"), async function createProduct(req, res) {
     try {
       if (!req.file) {
-        return res.status(400).send("No file uploaded.");
+        const { barcode, categoryOne, categoryTwo, categoryThree, imageUrl } =
+          req.body;
+        const [productInstance, isCreated] = await Product.upsert(
+          {
+            barcode,
+            imageUrl,
+            categoryOne,
+            categoryTwo,
+            categoryThree,
+          },
+          {
+            where: {
+              barcode,
+            },
+          }
+        );
+        if (!isCreated) {
+          return res.status(200).json({
+            message: "Product entry updated successfully",
+            productInstance,
+          });
+        }
+        return res
+          .status(400)
+          .json({ message: "Error creating product, please try again." });
+      } else {
+        console.log("File uploaded successfully");
+        console.log({ image: req.file });
+        const { barcode, categoryOne, categoryTwo, categoryThree } = req.body;
+        const filename = req.file.originalname;
+        const imageUrl = "http://localhost:3001/uploads/" + filename;
+        const productInstance = await Product.upsert(
+          {
+            barcode,
+            imageUrl,
+            categoryOne,
+            categoryTwo,
+            categoryThree,
+          },
+          {
+            where: {
+              barcode,
+            },
+          }
+        );
+        if (productInstance) {
+          return res.status(201).json({
+            message: "Product entry added successfully",
+            productInstance,
+          });
+        }
+        return res
+          .status(400)
+          .json({ message: "Error creating product, please try again." });
       }
-      console.log("File uploaded successfully");
-      const { barcode, ...categories } = req.body;
-      const imageUrl = req.file.path;
-      const productInstance = await Product.create({ barcode, imageUrl }); //how to add categories
-      console.log({ productInstance });
-      if (productInstance) {
-        return res.status(201).json({
-          message: "Product entry added successfully",
-          productInstance,
-        });
-      }
-      return res
-        .status(400)
-        .json({ message: "Error creating product, please try again." });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
   });
-  app.get("/products", async function getAllProducts(req, res) {
+  app.get("/product", async function getSingleProduct(req, res) {
+    try {
+      const { barcode } = req.query;
+      const product = await Product.findOne({ where: { barcode } });
+      if (product) {
+        return res.status(200).json({
+          message: `Fetched product successfully with barcode: ${barcode}`,
+          product,
+        });
+      }
+      return res.status(404).json({ message: "Product not found" });
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+  app.get("/", async function getAllProducts(req, res) {
     try {
       const allProducts = await Product.findAll({});
       if (allProducts.length > 0) {
@@ -44,28 +98,9 @@ function productController(app, Models) {
       return res.status(500).json({ message: error.message });
     }
   });
-  app.put("/:barcode", async function editProduct(req, res) {
+  app.delete("/", async function deleteProduct(req, res) {
     try {
-      const { barcode } = req.params;
-      const { imageUrl, ...categories } = req.body;
-      if (barcode.length > 0) {
-        const updatedProduct = await Product.update(
-          { barcode },
-          {
-            where: {
-              imageUrl,
-            },
-          }
-        );
-        console.log(updatedProduct);
-      }
-    } catch (error) {
-      return res.status(500).json({ message: error.message });
-    }
-  });
-  app.delete("/:barcode", async function deleteProduct(req, res) {
-    try {
-      const { barcode } = req.params;
+      const { barcode } = req.query;
       if (barcode.length > 0) {
         const deletedProduct = await Product.destroy({
           where: {
