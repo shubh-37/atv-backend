@@ -8,19 +8,13 @@ const dbConnection = require("./dbConnection/connect");
 const productController = require("./controllers/products");
 const authController = require("./controllers/users");
 
-app.get("/", (req, res) => {
-  res.send("Hello world");
+app.get("/ping", (req, res) => {
+  res.send("pong");
 });
 
 app.use(express.json());
-app.use((req, res, next) => {
-  res.append("Access-Control-Allow-Origin", ["*"]);
-  res.append("Access-Control-Allow-Methods", "GET,PUT,POST");
-  res.append("Access-Control-Allow-Headers", "Content-Type");
-  res.append("Access-Control-Allow-Credentials", true);
-  next();
-});
 app.use(cors());
+app.use("/uploads", express.static("../uploads"));
 
 async function start() {
   try {
