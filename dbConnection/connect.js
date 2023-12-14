@@ -3,19 +3,19 @@ const path = require("path");
 const basename = path.basename(__filename);
 const { Sequelize } = require("sequelize");
 
-const credential = require("../config/config.json");
+// const credential = require("../config/config.json");
 var sequelize = null;
-const dbCredential = credential["development"];
+// const dbCredential = credential["development"];
 
 const dbConnection = async () => {
   try {
     sequelize = new Sequelize(
-      dbCredential.database, //db name
-      dbCredential.username, //db username
-      dbCredential.password, //db password
+      'atvbarcode', //db name
+      process.env.DB_USERNAME, //db username
+      process.env.DB_PASSWORD, //db password
       {
-        host: dbCredential.host, //db hostname
-        dialect: dbCredential.dialect,
+        host: process.env.DB_URL, //db hostname
+        dialect: 'postgres',
         pool: {
           max: 100,
           min: 0,
@@ -23,6 +23,7 @@ const dbConnection = async () => {
           acquire: 3000,
           evict: 30000,
         },
+        ssl: true
       }
     );
     const modelsPath = path.resolve(__dirname, "..", "models");
@@ -42,7 +43,7 @@ const dbConnection = async () => {
         sequelize[model.name] = model;
       });
     await sequelize.authenticate();
-    await sequelize.sync(); //{ force: true } - to drop the table and add new table with new fields
+    await sequelize.sync({force:true}); //{ force: true } - to drop the table and add new table with new fields
     console.log("Connection has been established successfully.");
     return sequelize;
   } catch (error) {
