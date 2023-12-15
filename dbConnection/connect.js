@@ -23,7 +23,6 @@ const dbConnection = async () => {
           acquire: 3000,
           evict: 30000,
         },
-        ssl: true
       }
     );
     const modelsPath = path.resolve(__dirname, "..", "models");
@@ -43,7 +42,7 @@ const dbConnection = async () => {
         sequelize[model.name] = model;
       });
     await sequelize.authenticate();
-    await sequelize.sync({force:true}); //{ force: true } - to drop the table and add new table with new fields
+    await sequelize.sync(); //{ force: true } - to drop the table and add new table with new fields
     console.log("Connection has been established successfully.");
     return sequelize;
   } catch (error) {

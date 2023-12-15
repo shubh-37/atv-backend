@@ -1,4 +1,14 @@
 const multer = require("multer");
+const fs = require('fs');
+const aws = require('aws-sdk');
+const { AWS_ACCESS_KEY_ID, AWS_ACCESS_SECRET_KEY, AWS_ACCESS_REGION } = process.env;
+
+const s3 = new aws.S3({
+  accessKeyId: AWS_ACCESS_KEY_ID,
+  secretAccessKey: AWS_ACCESS_SECRET_KEY,
+  region: AWS_ACCESS_REGION,
+  signatureVersion: 'v4'
+});
 
 const storage = multer.diskStorage({
   destination: "../uploads", // Directory where uploaded files will be stored
@@ -41,13 +51,29 @@ function productController(app, Models) {
       } else {
         console.log("File uploaded successfully");
         console.log({ image: req.file });
+
+        const fileName = req.file.originalname;
+        const params = {
+          Bucket: "inventory-photo",
+          Key: fileName,
+          Body: fs.createReadStream(req.file.path),
+          ContentType: req.file.mimetype,
+          ACL: 'public-read'
+        };
+  
+        let s3ImageUrl = null;
+        try {
+        const response = await s3.upload(params).promise();;
+          console.log({response});
+        } catch (error) {
+          console.log({error})
+        }
+
         const { barcode, categoryOne, categoryTwo, categoryThree } = req.body;
-        const filename = req.file.originalname;
-        const imageUrl = "http://localhost:3001/uploads/" + filename;
         const productInstance = await Product.upsert(
           {
             barcode,
-            imageUrl,
+            imageUrl: s3ImageUrl,
             categoryOne,
             categoryTwo,
             categoryThree,
