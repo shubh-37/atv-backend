@@ -1,6 +1,7 @@
 const multer = require("multer");
 const fs = require('fs');
 const aws = require('aws-sdk');
+const authenticate = require("../middleware/authentication");
 const { AWS_ACCESS_KEY_ID, AWS_ACCESS_SECRET_KEY, AWS_ACCESS_REGION } = process.env;
 
 const s3 = new aws.S3({
@@ -20,7 +21,7 @@ const upload = multer({ storage });
 
 function productController(app, Models) {
   const { Product } = Models;
-  app.post("/", upload.single("image"), async function createProduct(req, res) {
+  app.post("/", [authenticate, upload.single("image")], async function createProduct(req, res) {
     try {
       if (!req.file) {
         const { barcode, categoryOne, categoryTwo, categoryThree, imageUrl } =
@@ -100,7 +101,7 @@ function productController(app, Models) {
       return res.status(500).json({ message: error.message });
     }
   });
-  app.get("/product", async function getSingleProduct(req, res) {
+  app.get("/product", authenticate, async function getSingleProduct(req, res) {
     try {
       const { barcode } = req.query;
       const product = await Product.findOne({ where: { barcode } });
