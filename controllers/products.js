@@ -65,6 +65,7 @@ function productController(app, Models) {
         try {
         const response = await s3.upload(params).promise();;
           console.log({response});
+          s3ImageUrl = response.Location;
         } catch (error) {
           console.log({error})
         }
@@ -95,6 +96,7 @@ function productController(app, Models) {
           .json({ message: "Error creating product, please try again." });
       }
     } catch (error) {
+      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   });
