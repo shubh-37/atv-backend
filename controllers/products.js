@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 function productController(app, Models) {
-  const { Product } = Models;
+  const { Product, Category } = Models;
   app.post("/", [authenticate, upload.single("image")], async function createProduct(req, res) {
     try {
       if (!req.file) {
@@ -116,6 +116,17 @@ function productController(app, Models) {
       return res.status(500).json({ message: error.message });
     }
   });
+  app.get("/category", async function getAllCategory(req, res){
+    try {
+      const categoryResponse = await Category.findAll({});
+      if(categoryResponse.length > 0){
+        return res.status(200).json({ categoryResponse });
+      }
+      return res.status(404).json({ message: "No category found."});
+    } catch (error) {
+      return res.status(500).json({message: error.message});      
+    }
+  })
   app.get("/", async function getAllProducts(req, res) {
     try {
       const allProducts = await Product.findAll({});
