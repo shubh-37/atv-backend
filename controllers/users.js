@@ -33,7 +33,8 @@ function auth(app, sequelize) {
 
       return res.status(200).json({ token });
     } catch (error) {
-      return res.status(error.statusCode).json({ message: error.message });
+      console.log(error);
+      return res.status(500).json({ message: error.message });
     }
   });
 }
