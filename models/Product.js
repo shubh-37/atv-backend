@@ -25,7 +25,7 @@ function createProduct(sequelize, DataTypes) {
       },
     },
     {
-      timestamps: false,
+      timestamps: true,
       tableName: "products",
     }
   );
