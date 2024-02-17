@@ -5,16 +5,19 @@ const { Sequelize } = require("sequelize");
 
 // const credential = require("../config/config.json");
 var sequelize = null;
-// const dbCredential = credential["development"];
+const dbCredential = credential["development"];
 
 const dbConnection = async () => {
   try {
     sequelize = new Sequelize(
       'atvbarcode', //db name
-      process.env.DB_USERNAME, //db username
-      process.env.DB_PASSWORD, //db password
+      dbCredential.username,
+      // process.env.DB_USERNAME, //db username
+      dbCredential.password,
+      // process.env.DB_PASSWORD, //db password
       {
-        host: process.env.DB_URL, //db hostname
+        host: dbCredential.host,
+        // host: process.env.DB_URL, //db hostname
         dialect: 'postgres',
         pool: {
           max: 100,
