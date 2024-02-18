@@ -9,7 +9,7 @@ module.exports = {
           "users",
           "mobile_number",
           {
-            type: Sequelize.DataTypes.NUMBER,
+            type: Sequelize.DataTypes.INTEGER,
             allowNull: false,
           },
           { transaction: t }
@@ -18,7 +18,7 @@ module.exports = {
           "users",
           "retry_count",
           {
-            type: Sequelize.DataTypes.NUMBER,
+            type: Sequelize.DataTypes.INTEGER,
             defaultValue: 0,
             validate: {
               max: {
@@ -33,7 +33,7 @@ module.exports = {
           "users",
           "otp",
           {
-            type: Sequelize.DataTypes.NUMBER,
+            type: Sequelize.DataTypes.INTEGER,
             validate: {
               max: {
                 args: 4,
