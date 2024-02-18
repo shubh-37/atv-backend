@@ -11,12 +11,12 @@ function createUser(sequelize, DataTypes) {
           allowNull: false,
         },
         mobileNumber: {
-          type: DataTypes.NUMBER,
+          type: DataTypes.INTEGER,
           allowNull: false,
           field: 'mobile_number'
         },
         retryCount: {
-          type: DataTypes.NUMBER,
+          type: DataTypes.INTEGER,
           defaultValue: 0,
           validate: {
             max: {
@@ -27,7 +27,7 @@ function createUser(sequelize, DataTypes) {
           field: 'retry_count'
         },
         otp: {
-          type: DataTypes.NUMBER,
+          type: DataTypes.INTEGER,
           validate: {
             max: {
               args: 4,
