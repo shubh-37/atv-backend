@@ -2,7 +2,7 @@
     "development": {
         "username": "postgres",
         "password": "postgres",
-        "database": "atv",
+        "database": "atvbarcode",
         "host": "127.0.0.1",
         "dialect": "postgres"
       }
