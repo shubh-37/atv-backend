@@ -105,7 +105,7 @@ function auth(app, sequelize) {
       return res.status(500).json({ message: error.message });
     }
   });
-  app.get('/verifyOtp', async function verifyOtp(req, res) {
+  app.post('/verifyOtp', async function verifyOtp(req, res) {
     const { mobileNumber, otp } = req.body;
     try {
       if (!otp && !mobileNumber) {
