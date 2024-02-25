@@ -1,10 +1,12 @@
 const jwt = require('jsonwebtoken');
+const sendInteraktNotification = require('../middleware/sendInteraktNotification');
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const MAX_RETRY_COUNT = 4;
+const MAX_RETRY_COUNT = 3;
+const eventName = 'Send OTP Message';
 
 function isStoredTimeWithin10Minutes(otpGeneratedAt) {
   // Convert stored time to Date object
@@ -31,37 +33,56 @@ function auth(app, sequelize) {
       if (!mobileNumber) {
         return res.status(401).json({ message: 'Please provide with mobile number!' });
       }
-      const user = await User.findOne({ where: { mobileNumber } });
-      if (!user) {
+      const userInstance = await User.findOne({ where: { mobileNumber } });
+      if (!userInstance) {
         return res.status(404).json({ message: 'User not found!' });
       }
-
+      const user = userInstance.dataValues;
       if (!user.otp) {
         const randomInt = getRandomInt(1000, 9999); // Generates a random integer between 1000 and 9999
         const otpGeneratedAt = new Date();
         let retryCount = user.retryCount + 1;
         //add send Interakt notification function
-        const updatedUser = await user.update({
-          otp: randomInt,
-          retryCount,
-          otpGeneratedAt
-        });
-        console.log(updatedUser);
-        return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}` });
+        try {
+          const userDetails = { phoneNumber: user.mobileNumber, otp: randomInt };
+          const interaktResponse = await sendInteraktNotification(userDetails, eventName);
+          if (interaktResponse.result) {
+            const updatedUser = await userInstance.update({
+              otp: randomInt,
+              retryCount,
+              otpGeneratedAt
+            });
+            return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}`, retryCount });
+          }
+        } catch (error) {
+          if (error?.result === false) {
+            return res.status(400).json({ message: 'Unable to find the user, please create a new user in Interakt' });
+          }
+          return res.status(500).json({ message: error });
+        }
       }
       const isOtpValid = isStoredTimeWithin10Minutes(user.otpGeneratedAt);
       if (user.retryCount < MAX_RETRY_COUNT && isOtpValid) {
         let retryCount = user.retryCount + 1;
-        const updatedUser = await user.update({
-          retryCount
-        });
-        console.log(updatedUser);
-        //add interakt notification
-        return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}` });
+        try {
+          const userDetails = { phoneNumber: user.mobileNumber, otp: user.otp };
+          const interaktResponse = await sendInteraktNotification(userDetails, eventName);
+          if (interaktResponse.result) {
+            const updatedUser = await userInstance.update({
+              retryCount
+            });
+            return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}`, retryCount });
+          }
+        } catch (error) {
+          if (error?.result === false) {
+            return res.status(400).json({ message: 'Unable to find the user, please create a new user in Interakt' });
+          }
+          return res.status(500).json({ message: error });
+        }
       } else if (!isOtpValid) {
         console.log('Session timed out, try logging again');
         //clear otp, retry_count and otpGeneratedAt
-        const updatedUser = await user.update({
+        const updatedUser = await userInstance.update({
           otp: null,
           retryCount: 0,
           otpGeneratedAt: null
@@ -71,7 +92,7 @@ function auth(app, sequelize) {
       } else {
         console.log('max retry count reached');
         //clear otp, retry_count and otpGeneratedAt
-        const updatedUser = await user.update({
+        const updatedUser = await userInstance.update({
           otp: null,
           retryCount: 0,
           otpGeneratedAt: null
@@ -90,10 +111,11 @@ function auth(app, sequelize) {
       if (!otp && !mobileNumber) {
         return res.status(401).json({ message: 'Please provide with mobile number and OTP!' });
       }
-      const user = await User.findOne({ where: { mobileNumber } });
-      if (!user) {
+      const userInstance = await User.findOne({ where: { mobileNumber } });
+      if (!userInstance) {
         return res.status(404).json({ message: 'User not found!' });
       }
+      const user = userInstance.dataValues;
       const isOtpValid = isStoredTimeWithin10Minutes(user.otpGeneratedAt);
       if (isOtpValid) {
         if (user.otp === otp) {
@@ -101,19 +123,17 @@ function auth(app, sequelize) {
             expiresIn: '24h'
           });
           //reset everything
-          const updatedUser = await user.update({
+          const updatedUser = await userInstance.update({
             otp: null,
             retryCount: 0,
             otpGeneratedAt: null
           });
-          console.log(updatedUser);
           return res.status(200).json({ message: `Login successful`, token });
         } else {
           return res.status(401).json({ message: 'Incorrect OTP. Please try again' });
         }
       }
-      console.log('go back to the login page and send otp again');
-      const updatedUser = await user.update({
+      const updatedUser = await userInstance.update({
         otp: null,
         retryCount: 0,
         otpGeneratedAt: null
@@ -121,7 +141,6 @@ function auth(app, sequelize) {
       console.log(updatedUser);
       return res.status(440).json({ message: 'Session timed out. Please login again' });
     } catch (error) {
-      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   });
