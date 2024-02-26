@@ -121,19 +121,19 @@ function auth(app, sequelize) {
         });
         return res.status(440).json({ message: 'Session timed out. Please login again' });
       }
-      if (user.otp === otp) {
-        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, {
-          expiresIn: '24h'
-        });
-        //reset everything
-        const updatedUser = await userInstance.update({
-          otp: null,
-          retryCount: 0,
-          otpGeneratedAt: null
-        });
-        return res.status(200).json({ message: `Login successful`, token });
+      if (user.otp !== otp) {
+        return res.status(401).json({ message: 'Incorrect OTP. Please try again' });
       }
-      return res.status(401).json({ message: 'Incorrect OTP. Please try again' });
+      const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, {
+        expiresIn: '24h'
+      });
+      //reset everything
+      const updatedUser = await userInstance.update({
+        otp: null,
+        retryCount: 0,
+        otpGeneratedAt: null
+      });
+      return res.status(200).json({ message: `Login successful`, token });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
