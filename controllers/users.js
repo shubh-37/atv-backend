@@ -62,24 +62,7 @@ function auth(app, sequelize) {
         }
       }
       const isOtpValid = isStoredTimeWithin10Minutes(user.otpGeneratedAt);
-      if (user.retryCount < MAX_RETRY_COUNT && isOtpValid) {
-        let retryCount = user.retryCount + 1;
-        try {
-          const userDetails = { phoneNumber: user.mobileNumber, otp: user.otp };
-          const interaktResponse = await sendInteraktNotification(userDetails, eventName);
-          if (interaktResponse.result) {
-            const updatedUser = await userInstance.update({
-              retryCount
-            });
-            return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}`, retryCount });
-          }
-        } catch (error) {
-          if (error?.result === false) {
-            return res.status(400).json({ message: 'Unable to find the user, please create a new user in Interakt' });
-          }
-          return res.status(500).json({ message: error });
-        }
-      } else if (!isOtpValid) {
+      if (!isOtpValid) {
         console.log('Session timed out, try logging again');
         //clear otp, retry_count and otpGeneratedAt
         const updatedUser = await userInstance.update({
@@ -87,9 +70,8 @@ function auth(app, sequelize) {
           retryCount: 0,
           otpGeneratedAt: null
         });
-        console.log(updatedUser);
         return res.status(440).json({ message: 'Session timed out. Please login again' });
-      } else {
+      } else if (user.retryCount === MAX_RETRY_COUNT) {
         console.log('max retry count reached');
         //clear otp, retry_count and otpGeneratedAt
         const updatedUser = await userInstance.update({
@@ -97,11 +79,25 @@ function auth(app, sequelize) {
           retryCount: 0,
           otpGeneratedAt: null
         });
-        console.log(updatedUser);
         return res.status(429).json({ message: 'Max retry count reached. Please login again' });
       }
+      let retryCount = user.retryCount + 1;
+      try {
+        const userDetails = { phoneNumber: user.mobileNumber, otp: user.otp };
+        const interaktResponse = await sendInteraktNotification(userDetails, eventName);
+        if (interaktResponse.result) {
+          const updatedUser = await userInstance.update({
+            retryCount
+          });
+          return res.status(200).json({ message: `Otp sent successfully to ${mobileNumber}`, retryCount });
+        }
+      } catch (error) {
+        if (error?.result === false) {
+          return res.status(400).json({ message: 'Unable to find the user, please create a new user in Interakt' });
+        }
+        return res.status(500).json({ message: error });
+      }
     } catch (error) {
-      console.log(error);
       return res.status(500).json({ message: error.message });
     }
   });
@@ -117,29 +113,27 @@ function auth(app, sequelize) {
       }
       const user = userInstance.dataValues;
       const isOtpValid = isStoredTimeWithin10Minutes(user.otpGeneratedAt);
-      if (isOtpValid) {
-        if (user.otp === otp) {
-          const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, {
-            expiresIn: '24h'
-          });
-          //reset everything
-          const updatedUser = await userInstance.update({
-            otp: null,
-            retryCount: 0,
-            otpGeneratedAt: null
-          });
-          return res.status(200).json({ message: `Login successful`, token });
-        } else {
-          return res.status(401).json({ message: 'Incorrect OTP. Please try again' });
-        }
+      if (!isOtpValid) {
+        const updatedUser = await userInstance.update({
+          otp: null,
+          retryCount: 0,
+          otpGeneratedAt: null
+        });
+        return res.status(440).json({ message: 'Session timed out. Please login again' });
       }
-      const updatedUser = await userInstance.update({
-        otp: null,
-        retryCount: 0,
-        otpGeneratedAt: null
-      });
-      console.log(updatedUser);
-      return res.status(440).json({ message: 'Session timed out. Please login again' });
+      if (user.otp === otp) {
+        const token = jwt.sign({ username: user.username }, process.env.JWT_SECRET, {
+          expiresIn: '24h'
+        });
+        //reset everything
+        const updatedUser = await userInstance.update({
+          otp: null,
+          retryCount: 0,
+          otpGeneratedAt: null
+        });
+        return res.status(200).json({ message: `Login successful`, token });
+      }
+      return res.status(401).json({ message: 'Incorrect OTP. Please try again' });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }
