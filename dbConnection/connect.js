@@ -1,7 +1,7 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 const basename = path.basename(__filename);
-const { Sequelize } = require("sequelize");
+const { Sequelize } = require('sequelize');
 
 // const credential = require("../config/config.json");
 var sequelize = null;
@@ -20,32 +20,25 @@ const dbConnection = async () => {
           min: 0,
           idle: 0,
           acquire: 3000,
-          evict: 30000,
-        },
+          evict: 30000
+        }
       }
     );
-    const modelsPath = path.resolve(__dirname, "..", "models");
+    const modelsPath = path.resolve(__dirname, '..', 'models');
     fs.readdirSync(modelsPath)
       .filter((file) => {
-        return (
-          file.indexOf(".") !== 0 &&
-          file !== basename &&
-          file.slice(-3) === ".js"
-        );
+        return file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js';
       })
       .forEach((file) => {
-        const model = require(path.join(modelsPath, file))(
-          sequelize,
-          Sequelize.DataTypes
-        );
+        const model = require(path.join(modelsPath, file))(sequelize, Sequelize.DataTypes);
         sequelize[model.name] = model;
       });
     await sequelize.authenticate();
-    await sequelize.sync(); //{ force: true } - to drop the table and add new table with new fields
-    console.log("Connection has been established successfully.");
+    await sequelize.sync({ force: true }); //{ force: true } - to drop the table and add new table with new fields
+    console.log('Connection has been established successfully.');
     return sequelize;
   } catch (error) {
-    console.log({ error, message: "Unable to connect to the Database." });
+    console.log({ error, message: 'Unable to connect to the Database.' });
   }
 };
 
